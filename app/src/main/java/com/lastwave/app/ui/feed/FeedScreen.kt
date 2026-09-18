@@ -36,6 +36,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
@@ -297,6 +299,7 @@ fun FeedScreen(
                     }
                     if (isSectionVisible(HomeSection.QUICK_TILES) && quickTiles.isNotEmpty()) {
                         item(key = "quick_tiles") {
+                            FeedSectionHeader(title = "Quick access")
                             QuickTilesGrid(
                                 tiles = quickTiles,
                                 onTileClick = { tile ->
@@ -1020,19 +1023,21 @@ private fun QuickTileCard(
     val tileShape = RoundedCornerShape(18.dp)
 
     // Per-type vibrant gradient pairs for the artwork/icon box matching modern expressive designs
-    val isLikedTile = tile.isLiked || tile.collection == "yt_liked" || tile.playlistId == "yt_liked"
+    val isYtLikedTile = tile.collection == "yt_liked" || tile.playlistId == "yt_liked"
+    val isLocalLikedTile = tile.isLiked && !isYtLikedTile
+    val isLikedTile = isYtLikedTile || isLocalLikedTile
     val isMixTile = tile.collection == "radio" || tile.title.contains("Mix", ignoreCase = true)
     val isNewReleasesTile = tile.collection == "new_releases"
 
     val iconGradient = when {
         isLikedTile -> Brush.linearGradient(
-            colors = listOf(Color(0xFFE91E63), Color(0xFFFF5252)),
+            colors = listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.primary),
         )
         isMixTile -> Brush.linearGradient(
-            colors = listOf(Color(0xFF7C4DFF), Color(0xFF536DFE)),
+            colors = listOf(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.secondary),
         )
         isNewReleasesTile -> Brush.linearGradient(
-            colors = listOf(Color(0xFFFF6D00), Color(0xFFFFAB00)),
+            colors = listOf(MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.tertiary),
         )
         else -> Brush.linearGradient(
             colors = listOf(
@@ -1048,9 +1053,9 @@ private fun QuickTileCard(
         shape = tileShape,
         color = liquidGlassContainerColor(
             when {
-                isLikedTile -> Color(0xFFE91E63).copy(alpha = 0.12f)
-                isMixTile -> Color(0xFF7C4DFF).copy(alpha = 0.12f)
-                isNewReleasesTile -> Color(0xFFFF6D00).copy(alpha = 0.12f)
+                isLikedTile -> MaterialTheme.colorScheme.primaryContainer
+                isMixTile -> MaterialTheme.colorScheme.secondaryContainer
+                isNewReleasesTile -> MaterialTheme.colorScheme.tertiaryContainer
                 else -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.75f)
             },
         ),
@@ -1059,8 +1064,7 @@ private fun QuickTileCard(
             MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
         ),
         modifier = modifier
-            .width(136.dp)
-            .height(148.dp),
+            .width(136.dp),
     ) {
         Column(
             modifier = Modifier
@@ -1076,18 +1080,18 @@ private fun QuickTileCard(
                     .background(iconGradient),
                 contentAlignment = Alignment.Center,
             ) {
-                if (!tile.artworkUrl.isNullOrBlank() && !isLikedTile && !isMixTile) {
-                    AsyncImage(
-                        model = tile.artworkUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else if (isLikedTile) {
+                if (isYtLikedTile) {
                     Icon(
-                        Icons.Filled.Favorite,
+                        Icons.Filled.ThumbUp,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp),
+                    )
+                } else if (isLocalLikedTile) {
+                    Icon(
+                        Icons.Filled.ThumbUp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(36.dp),
                     )
                 } else if (isMixTile) {
@@ -1105,11 +1109,12 @@ private fun QuickTileCard(
                         modifier = Modifier.size(36.dp),
                     )
                 } else {
-                    Icon(
-                        Icons.Filled.MusicNote,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.9f),
-                        modifier = Modifier.size(36.dp),
+                    ArtworkImage(
+                        name = tile.title,
+                        artist = tile.subtitle ?: "",
+                        embeddedUrl = tile.artworkUrl,
+                        fallbackIcon = if (isMixTile) Icons.Filled.AutoAwesome else Icons.Filled.Album,
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
             }
@@ -1127,20 +1132,23 @@ private fun QuickTileCard(
                         lineHeight = 16.sp,
                         fontWeight = FontWeight.Bold,
                     ),
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = tile.subtitle ?: if (tile.actionVideoId != null) "Track" else "Playlist",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 11.sp,
-                        lineHeight = 14.sp,
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                )
+                val finalSubtitle = tile.subtitle ?: if (tile.actionVideoId != null) "Track" else "Playlist"
+                if (finalSubtitle.isNotEmpty()) {
+                    Text(
+                        text = finalSubtitle,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                    )
+                }
             }
         }
     }
@@ -1179,10 +1187,7 @@ private fun QuickPicksRows(
                         shape = RoundedCornerShape(18.dp),
                         color = if (isCurrent) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
                         else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.65f),
-                        border = if (isCurrent) androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                        ) else null,
+                        border = null,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(
@@ -1214,7 +1219,7 @@ private fun QuickPicksRows(
                                     track.title,
                                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.5.sp),
                                     fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
+                                    maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
                                     color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.padding(start = 2.dp),

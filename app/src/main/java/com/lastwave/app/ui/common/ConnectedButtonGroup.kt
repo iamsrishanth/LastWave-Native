@@ -1,5 +1,7 @@
 package com.lastwave.app.ui.common
 
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -92,19 +94,12 @@ fun ConnectedButtonGroup(
                 label = "connectedBtnFg_$index",
             )
 
-            val borderColor by animateColorAsState(
-                targetValue = if (isSelected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outlineVariant
-                },
-                animationSpec = ExpressiveMotion.effectsDefault(),
-                label = "connectedBtnBorder_$index",
-            )
+
 
             Surface(
                 modifier = Modifier
                     .weight(1f)
+                    .zIndex(if (isSelected) 1f else 0f)
                     .scale(scale)
                     .clickable(
                         interactionSource = interactionSource,
@@ -117,7 +112,7 @@ fun ConnectedButtonGroup(
                 shape = shape,
                 color = containerColor,
                 contentColor = contentColor,
-                border = BorderStroke(1.dp, borderColor),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                 tonalElevation = if (isSelected) 2.dp else 0.dp,
             ) {
                 Box(
